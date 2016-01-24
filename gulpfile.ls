@@ -115,8 +115,6 @@ gulp.task \coverage, ->
 gulp.task \build, <[build:components:styles build:components:scripts]>
 gulp.task \default, -> run-sequence do 
     <[
-        build:src 
-        watch:src 
         build:components:styles 
         watch:components:styles 
         build-and-watch:components:scripts
