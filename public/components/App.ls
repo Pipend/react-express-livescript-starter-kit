@@ -20,7 +20,7 @@ App = create-class do
                 Link to: \/normal, \normal
                 Link to: \/beta, \beta
 
-            # DISTRIBS
+            # ROUTES
             div null,
                 @props.children
 
