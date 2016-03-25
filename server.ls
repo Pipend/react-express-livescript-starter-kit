@@ -1,7 +1,7 @@
 require! \body-parser
 {http-port}:config = require \./config
 require! \express
-{map, each} = require \prelude-ls
+{map, each, foldl} = require \prelude-ls
 
 app = express!
     ..set \views, __dirname + \/
@@ -12,8 +12,14 @@ app = express!
     ..use \/node_modules, express.static "#__dirname/node_modules"
     ..use \/public, express.static "#__dirname/public"
 
-(require \./routes) {}
-    |> each ([, method]:route) -> app[method].apply app, route.slice 2
+(require \./routes)! |> each ({paths, request-handler}) !->
+    paths |> each ({method, optional-params or {}, patterns}?) !->
+        if patterns
+            patterns |> each (pattern) -> 
+                app[method] pattern, request-handler
+
+        else
+            app[method] request-handler
 
 app.listen http-port
-console.log "Started listening on port #{http-port}"
+console.log "express listening on port #{http-port}"

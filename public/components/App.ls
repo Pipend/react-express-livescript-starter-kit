@@ -1,48 +1,32 @@
-require! \../../config.ls
-{clone-element, create-class, create-factory, DOM:{div}}:React = require \react
-{render} = require \react-dom
-require! \react-router
-Router = create-factory react-router.Router
-Route = create-factory react-router.Route
-IndexRoute = create-factory react-router.IndexRoute
-Link = create-factory react-router.Link
+{create-class, create-factory, DOM:{div}}:React = require \react
+Link = create-factory (require \react-router).Link
 
-App = create-class do
+module.exports = create-class do
 
     display-name: \App
 
     # render :: a -> ReactElement
     render: ->
-        div null,
+        div class-name: \app,
 
             # MENU
-            div null,
+            div class-name: \menu,
                 Link to: \/normal, \normal
-                Link to: \/beta, \beta
 
             # ROUTES
-            div null,
-                @props.children
+            div class-name: \route, @props.children
 
-            div {class-name: \building}, \Building... if @state.building
+            # BUILDING
+            if @state.building
+                div {class-name: \building}, \Building...
 
     # get-initial-state :: a -> UIState
-    get-initial-state: -> building: false
+    get-initial-state: ->
+        building: false
 
     # component-did-mount :: a -> Void
     component-will-mount: !->
-        if !!config?.gulp?.reload-port
-            (require \socket.io-client) "http://localhost:#{config.gulp.reload-port}"
+        if window.location.hostname in <[localhost 127.0.0.1]>
+            (require \socket.io-client) \http://localhost:8601
                 ..on \build-start, ~> @set-state building: true
                 ..on \build-complete, -> window.location.reload!
-
-render do 
-    Router do 
-        history: react-router.browser-history
-        Route do 
-            name: \app
-            path: \/
-            component: App
-            # IndexRoute component: (require \./NormalRoute.ls)
-            Route name: \normal, path: \/normal component: (require \./NormalRoute.ls)
-    document.get-element-by-id \mount-node

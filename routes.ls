@@ -1,13 +1,22 @@
 {map} = require \prelude-ls
 
-static-routes = ["/", "/normal", "/beta"] |> map (r) -> [r, 'get', r, (req, res) -> res.render 'public/index.html']
-
-# inject mockable dependencies here:
 module.exports = ->
-    static-routes ++ [
-        * '/api/randoms', 'get', '/api/randoms', (req, res) -> 
-            how-many = parse-int req.query.many
-            res.send {
-                data: [1 to how-many] |> map (-> Math.random!)
-            }
-    ]
+
+    routes = 
+        # STATIC
+        *   paths:
+                *   method: \get
+                    patterns: <[/ /normal]>
+                ...
+            request-handler: (req, res) ->
+                res.render \public/index.html
+
+        # API
+        *   paths:
+                *   method: \get
+                    patterns: <[/api/normal]>
+                ...
+            request-handler: (req, res, next) ->
+                res.send do 
+                    [0 til req.query.limit] |> map -> 
+                        Math.floor Math.random! * 100

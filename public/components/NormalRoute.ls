@@ -1,26 +1,29 @@
-{create-class, create-factory, DOM:{div, button}}:React = require \react
-{find-DOM-node} = require \react-dom
+{create-class, DOM:{div, button}}:React = require \react
 
 module.exports = create-class do
 
     display-name: \Normal
 
-    # render :: a -> ReactElement
+    # render :: () -> ReactElement
     render: ->
         div null, 
+            
+            # REFRESH
             button do
-                ref: \myb
-                on-click: ~> fetch '/api/randoms?many=500' .then (.json!) .then ~> @set-state {data: it.data}
-                "refresh"
-            div null, JSON.stringify @state.data
+                on-click: ~> 
+                    fetch \/api/normal?limit=500
+                        .then (.json!) 
+                        .then (numbers) ~> 
+                            @set-state {numbers}
+
+                \refresh
+            
+            # NUMBERS
+            div do 
+                class-name: \numbers
+                JSON.stringify @state.numbers
 
 
-    # get-initial-state :: a -> UIState
+    # get-initial-state :: () -> UIState
     get-initial-state: -> 
-        {
-            data: []
-        }
-
-    # component-did-mount :: a -> Void
-    component-did-mount: !->
-        find-DOM-node @refs.myb .scrollIntoView!
+        numbers: []

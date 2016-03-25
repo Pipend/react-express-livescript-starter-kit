@@ -21,22 +21,25 @@ io = null
 
 # emit-with-delay :: String -> IO()
 emit-with-delay = (event) ->
-    if !!io
-        set-timeout do 
-            -> io.emit event
-            200
-
+    if io
+        <- set-timeout _, 0 
+        io.emit event
 
 # build styles in components
-gulp.task \build:components:styles, ->
-    gulp.src <[./public/components/App.styl]>
-    .pipe gulp-stylus {use: nib!, import: <[nib]>, compress: config.gulp.minify, "include css": true}
-    .pipe gulp.dest './public/components'
-    .on \end, -> emit-with-delay \build-complete if !!io
+gulp.task \build:styles, ->
+    gulp.src <[./public/index.styl]>
+    .pipe gulp-stylus {
+        use: nib!
+        import: <[nib]>
+        compress: config.gulp.minify
+        "include css": true
+    }
+    .pipe gulp.dest \./public
+    .on \end, -> emit-with-delay \build-complete if io
 
 # watch styles in components
-gulp.task \watch:components:styles, -> 
-    gulp.watch <[./public/components/*.styl]>, <[build:components:styles]>
+gulp.task \watch:styles, -> 
+    gulp.watch <[./public/*.styl ./public/components/*.styl]>, <[build:styles]>
 
 # create a browserify Bundler
 # create-bundler :: [String] -> Bundler
@@ -49,11 +52,11 @@ create-bundler = (entries) ->
 # bundler :: Bundler -> {file :: String, directory :: String} -> IO()
 bundle = (bundler, {file, directory}:output) ->
     bundler.bundle!
-        .on \error, -> gulp-util.log arguments
+        .on \error, -> 
+            gulp-util.log arguments
         .pipe source file
         .pipe gulp-if config.minify, (gulp-streamify gulp-uglify!)
         .pipe gulp.dest directory
-
 
 # build-and-watch :: Bundler -> {file :: String, directory :: String} -> (() -> Void) -> (() -> Void) -> (() -> Void)
 build-and-watch = (bundler, {file}:output, done, on-update, on-build) ->
@@ -67,32 +70,31 @@ build-and-watch = (bundler, {file}:output, done, on-update, on-build) ->
 
     watchified-bundler
         .on \update, -> 
-            if !!on-update
+            if on-update
                 on-update!
             bundle watchified-bundler, output
         .on \time, (time) ->
-            if !!on-build
+            if on-build
                 on-build!
             once-done!
             gulp-util.log "#{file} built in #{time / 1000} seconds"
 
-components-bundler = create-bundler [\./public/components/App.ls]
+index-ls = create-bundler [\./public/index.ls]
+index-js = file: \index.js, directory: \./public/
 
-app-js = file: "App.js", directory: "./public/components/"
+gulp.task \build:scripts, ->
+    bundle index-ls, index-js
 
-gulp.task \build:components:scripts, ->
-    bundle components-bundler, app-js
-
-gulp.task \build-and-watch:components:scripts, (done) ->
+gulp.task \build-and-watch:scripts, (done) ->
     build-and-watch do 
-        components-bundler
-        app-js
+        index-ls
+        index-js
         done
         -> emit-with-delay \build-start
         -> emit-with-delay \build-complete
 
 gulp.task \dev:server, ->
-    if !!config?.gulp?.reload-port
+    if config?.gulp?.reload-port
         io := (require \socket.io)!
             ..listen config.gulp.reload-port
 
@@ -112,11 +114,11 @@ gulp.task \coverage, ->
         .pipe write-reports!
         .on \finish, -> process.exit!
 
-gulp.task \build, <[build:components:styles build:components:scripts]>
+gulp.task \build, <[build:styles build:scripts]>
 gulp.task \default, -> run-sequence do 
     <[
-        build:components:styles 
-        watch:components:styles 
-        build-and-watch:components:scripts
+        build:styles 
+        watch:styles 
+        build-and-watch:scripts
     ]>
     \dev:server 
